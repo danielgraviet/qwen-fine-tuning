@@ -32,7 +32,8 @@ QLoRA fine-tuning pipeline for `Qwen/Qwen2-1.5B-Instruct` using PEFT + TRL. The 
 ### Important version constraints
 
 - `transformers >= 5.x` requires `torch >= 2.5`. Do not downgrade torch below 2.5 or imports will fail at the `transformers.integrations.moe` module.
-- `trl >= 1.0` removed `DataCollatorForCompletionOnlyLM`. Use `assistant_only_loss=True` in `SFTConfig` instead.
+- `trl >= 1.0` removed `DataCollatorForCompletionOnlyLM`. Use `completion_only_loss=True` in `SFTConfig` with a `prompt`/`completion` dataset format instead.
+- `trl >= 1.0` also removed `assistant_only_loss` support for templates without `{% generation %}` markers (Qwen2's built-in template lacks them). Use `completion_only_loss=True` as above.
 - PyTorch CUDA wheels are not on PyPI. They are fetched from `https://download.pytorch.org/whl/cu124` — this is wired into `pyproject.toml` via `[[tool.uv.index]]` so `uv sync` handles it automatically.
 
 ---
@@ -97,7 +98,7 @@ To use your own data, replace the `load_dataset` call and update `format_message
 
 ### Loss masking
 
-`assistant_only_loss=True` in `SFTConfig` masks the user-turn tokens so the cross-entropy loss is computed only on the assistant's responses. This is the TRL 1.x replacement for the removed `DataCollatorForCompletionOnlyLM`.
+`completion_only_loss=True` in `SFTConfig` masks the prompt tokens so loss is computed only on the assistant's response. The dataset is formatted with separate `prompt` and `completion` columns — `prompt` is the user turn rendered through the Qwen chat template (with `add_generation_prompt=True`), and `completion` is the assistant response + EOS token. This avoids a TRL 1.x incompatibility with Qwen2's chat template, which lacks the `{% generation %}` markers that `assistant_only_loss` requires.
 
 ### Training hyperparameters
 
@@ -115,3 +116,41 @@ To use your own data, replace the `load_dataset` call and update `format_message
 ### Output
 
 The fine-tuned LoRA adapter is saved to `./qwen-finetuned/`. It contains only the adapter weights (not the full base model), so it is small (~50MB for r=16).
+
+---
+
+## Saved artifacts
+
+The trained adapter and a mid-training checkpoint are backed up to Hugging Face Hub and will survive pod deletion:
+
+- **Model weights**: https://huggingface.co/dtgraviet/quen-fine-tuning
+
+---
+
+## Recovering after a pod restart or deletion
+
+The container filesystem is ephemeral. Code is on GitHub; weights are on Hugging Face. To restore a full working environment from scratch:
+
+```bash
+# 1. Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+source $HOME/.local/bin/env
+
+# 2. Clone the repo and restore the environment
+git clone https://github.com/danielgraviet/quen-fine-tuning
+cd quen-fine-tuning
+uv sync
+
+# 3. Log in to Hugging Face (requires a token with read access)
+#    Get one at https://huggingface.co/settings/tokens
+hf auth login
+
+# 4. Pull the trained adapter weights back down
+hf download dtgraviet/quen-fine-tuning --local-dir ./qwen-finetuned
+
+# 5. Resume training from the saved checkpoint, or run inference
+python3 train.py
+```
+
+> **Note**: `uv sync` installs into a `.venv` and needs ~2.5 GB of free disk space for
+> the PyTorch CUDA wheels. Make sure your pod has sufficient volume storage before running it.
