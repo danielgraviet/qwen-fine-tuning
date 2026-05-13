@@ -1,0 +1,34 @@
+[project]
+name = "qwen-finetune"
+version = "0.1.0"
+description = "QLoRA fine-tuning for Qwen2-1.5B-Instruct"
+requires-python = ">=3.11"
+dependencies = [
+    "torch==2.6.0+cu124",
+    "torchaudio==2.6.0+cu124",
+    "torchvision==0.21.0+cu124",
+    "transformers==5.8.0",
+    "peft==0.19.1",
+    "trl==1.4.0",
+    "accelerate==1.13.0",
+    "bitsandbytes==0.49.2",
+    "datasets==4.8.5",
+    "sentencepiece==0.2.1",
+    "einops==0.8.2",
+    "safetensors==0.7.0",
+    "scipy==1.17.1",
+    "numpy==2.4.4",
+]
+
+# PyTorch CUDA wheels are not on PyPI — point uv at the official torch index.
+# explicit = true means this index is only used for packages that name it via
+# [tool.uv.sources], so it won't slow down resolution of unrelated packages.
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[tool.uv.sources]
+torch      = [{ index = "pytorch-cu124" }]
+torchaudio = [{ index = "pytorch-cu124" }]
+torchvision = [{ index = "pytorch-cu124" }]
