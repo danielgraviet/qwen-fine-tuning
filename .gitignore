@@ -14,3 +14,7 @@ qwen-finetuned/
 
 # HuggingFace cache
 .cache/
+
+# Environment variables — never commit
+.env
+.env.*
