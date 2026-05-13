@@ -123,7 +123,7 @@ The fine-tuned LoRA adapter is saved to `./qwen-finetuned/`. It contains only th
 
 The trained adapter and a mid-training checkpoint are backed up to Hugging Face Hub and will survive pod deletion:
 
-- **Model weights**: https://huggingface.co/dtgraviet/quen-fine-tuning
+- **Model weights**: https://huggingface.co/dtgraviet/qwen-fine-tuning
 
 ---
 
